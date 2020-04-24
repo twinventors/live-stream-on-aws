@@ -71,18 +71,20 @@
                      Type: config.Type,
                      Destinations: [{
                              StreamName: config.StreamName + '/primary'
-                         },
-                         {
-                             StreamName: config.StreamName + '/secondary'
                          }
                      ]
                  };
+                 if (config.ChannelClass === 'Dual') {
+                     params.Destinations.push({
+                         StreamName: config.StreamName + '/secondary'
+                     });
+                 }
                  //Create input
                  data = await medialive.createInput(params).promise();
                  responseData = {
                      Id: data.Input.Id,
                      EndPoint1: data.Input.Destinations[0].Url,
-                     EndPoint2: data.Input.Destinations[1].Url
+                     EndPoint2: config.ChannelClass === 'Dual' ? data.Input.Destinations[1].Url : 'No secondary endpoint'
                  };
                  break;
 
@@ -178,23 +180,25 @@
      const encode1080p = require('./encoding-profiles/medialive-1080p');
      const encode720p = require('./encoding-profiles/medialive-720p');
      const encode540p = require('./encoding-profiles/medialive-540p');
+     const encode540pStatic = require('./encoding-profiles/medialive-540p-static');
      let responseData;
      try {
          // Define baseline Paameters for cheate channel
          let params = {
+             ChannelClass: config.ChannelClass === 'Dual' ? 'STANDARD' : "SINGLE_PIPELINE",
              Destinations: [{
                  Id: "destination1",
-                 Settings: [{
-                         PasswordParam: config.MediaPackagePriUser,
-                         Url: config.MediaPackagePriUrl,
-                         Username: config.MediaPackagePriUser
-                     },
-                     {
-                         PasswordParam: config.MediaPackageSecUser,
-                         Url: config.MediaPackageSecUrl,
-                         Username: config.MediaPackageSecUser
-                     }
-                 ]
+                 // Settings: [{
+                 //         PasswordParam: config.MediaPackagePriUser,
+                 //         Url: config.MediaPackagePriUrl,
+                 //         Username: config.MediaPackagePriUser
+                 //     },
+                 //     {
+                 //         PasswordParam: config.MediaPackageSecUser,
+                 //         Url: config.MediaPackageSecUrl,
+                 //         Username: config.MediaPackageSecUser
+                 //     }
+                 // ]
              }],
              InputSpecification: {
                  Codec: config.Codec,
@@ -225,16 +229,58 @@
                  params.InputSpecification.Resolution = 'HD';
                  params.InputSpecification.MaximumBitrate = 'MAX_20_MBPS';
                  params.EncoderSettings = encode1080p;
+                 params.Destinations[0].Settings = [{
+                     PasswordParam: config.MediaPackagePriUser,
+                     Url: config.MediaPackagePriUrl,
+                     Username: config.MediaPackagePriUser
+                 },
+                     {
+                         PasswordParam: config.MediaPackageSecUser,
+                         Url: config.MediaPackageSecUrl,
+                         Username: config.MediaPackageSecUser
+                     }
+                 ];
                  break;
              case '720':
                  params.InputSpecification.Resolution = 'HD';
                  params.InputSpecification.MaximumBitrate = 'MAX_10_MBPS';
                  params.EncoderSettings = encode720p;
+                 params.Destinations[0].Settings = [{
+                     PasswordParam: config.MediaPackagePriUser,
+                     Url: config.MediaPackagePriUrl,
+                     Username: config.MediaPackagePriUser
+                 },
+                     {
+                         PasswordParam: config.MediaPackageSecUser,
+                         Url: config.MediaPackageSecUrl,
+                         Username: config.MediaPackageSecUser
+                     }
+                 ];
                  break;
-             default:
+             case '520':
                  params.InputSpecification.Resolution = 'SD';
                  params.InputSpecification.MaximumBitrate = 'MAX_10_MBPS';
                  params.EncoderSettings = encode540p;
+                 params.Destinations[0].Settings = [{
+                         PasswordParam: config.MediaPackagePriUser,
+                         Url: config.MediaPackagePriUrl,
+                         Username: config.MediaPackagePriUser
+                     },
+                     {
+                         PasswordParam: config.MediaPackageSecUser,
+                         Url: config.MediaPackageSecUrl,
+                         Username: config.MediaPackageSecUser
+                 }];
+                 break;
+             case '520 static':
+             default:
+                 params.Destinations[0].MediaPackageSettings = [{
+                     ChannelId: config.MediaPackageChannelId
+                 }];
+                 params.InputSpecification.Resolution = 'SD';
+                 params.InputSpecification.MaximumBitrate = 'MAX_10_MBPS';
+                 params.EncoderSettings = encode540pStatic;
+                 break;
          }
 
          //Create Channel & return Channel ID

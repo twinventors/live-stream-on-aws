@@ -1,0 +1,89 @@
+{
+	"AvailConfiguration": {
+			"AvailSettings": {
+					"Scte35SpliceInsert": {
+							"NoRegionalBlackoutFlag": "FOLLOW",
+							"WebDeliveryAllowedFlag": "FOLLOW"
+					}
+			}
+	},
+	"AudioDescriptions": [
+		{
+			"AudioSelectorName": "default",
+			"AudioTypeControl": "FOLLOW_INPUT",
+			"CodecSettings": {
+				"AacSettings": {
+					"Bitrate": 96000,
+					"RawFormat": "NONE",
+					"Spec": "MPEG4"
+				}
+			},
+			"LanguageCodeControl": "FOLLOW_INPUT",
+			"Name": "audio_2_aac96"
+		}
+	],
+	"OutputGroups": [{
+		"Name": "TN2224",
+		"OutputGroupSettings": {
+			"MediaPackageGroupSettings": {
+				"Destination": {
+					"DestinationRefId": "destination1"
+				}
+			}
+		},
+		"Outputs": [{
+				"AudioDescriptionNames": [
+					"audio_2_aac96"
+				],
+				"OutputSettings": {
+					"MediaPackageOutputSettings": {}
+				},
+				"VideoDescriptionName": "video_960_540",
+				"OutputName": "mediapackage-output_960_540"
+			}
+		]
+	}],
+	"TimecodeConfig": {
+		"Source": "SYSTEMCLOCK"
+	},
+	"VideoDescriptions": [
+		{
+			"CodecSettings": {
+				"H264Settings": {
+					"AdaptiveQuantization": "HIGH",
+					"Bitrate": 2200000,
+					"ColorMetadata": "INSERT",
+					"EntropyEncoding": "CABAC",
+					"FlickerAq": "ENABLED",
+					"FramerateControl": "SPECIFIED",
+					"FramerateDenominator": 1001,
+					"FramerateNumerator": 20000,
+					"GopBReference": "ENABLED",
+					"GopNumBFrames": 3,
+					"GopSize": 60,
+					"GopSizeUnits": "FRAMES",
+					"Level": "H264_LEVEL_4_1",
+					"LookAheadRateControl": "HIGH",
+					"ParControl": "SPECIFIED",
+					"ParNumerator": 16,
+					"ParDenominator": 9,
+					"Profile": "HIGH",
+					"RateControlMode": "CBR",
+					"SceneChangeDetect": "ENABLED",
+					"SpatialAq": "ENABLED",
+					"Syntax": "DEFAULT",
+					"TemporalAq": "ENABLED",
+					"TimecodeInsertion": "DISABLED",
+					"NumRefFrames": 1,
+					"AfdSignaling": "NONE"
+				}
+			},
+			"Height": 540,
+			"Name": "video_960_540",
+			"ScalingBehavior": "DEFAULT",
+			"Width": 960,
+			"RespondToAfd": "NONE",
+			"Sharpness": 50
+		}
+	]
+}

@@ -13,7 +13,7 @@ Parameters:
   InputType:
     Description: Specify the input type for MediaLive (Default parametrs are for the Demo video)
     Type: String
-    Default: URL_PULL
+    Default: RTMP_PUSH
     AllowedValues:
       - RTP_PUSH
       - RTMP_PUSH
@@ -33,11 +33,12 @@ Parameters:
   InputRes:
     Description: Specify the Encoding Profile to use for MediaLive
     Type: String
-    Default: 720
+    Default: 540 static
     AllowedValues:
-      - 1080
-      - 720
-      - 540
+#      - 1080
+#      - 720
+#      - 540
+      - 540 static
 
   InputCIDR:
     Description: Specify the CIDR Block for the MediaLive SecurityGroup
@@ -86,6 +87,14 @@ Parameters:
     Type: String
     Default: ""
 
+  ChannelClass:
+    Description: Single or dual pipeline for input redundancy
+    Type: String
+    Default: Dual
+    AllowedValues:
+      - Dual
+      - Single
+
   ChannelStart:
     Description: Start the Live Channel as part of the deployment
     Type: String
@@ -94,88 +103,102 @@ Parameters:
       - Yes
       - No
 
-Metadata:
-    AWS::CloudFormation::Interface:
-        ParameterGroups:
-            -
-              Label:
-                default: Deployment Options
-              Parameters:
-                - Code
-            -
-              Label:
-                default: Live Stream Source
-              Parameters:
-                - InputType
-                - InputCodec
-                - InputRes
-                - ChannelStart
-            -
-              Label:
-                default: For PUSH Source Types
-              Parameters:
-                - InputCIDR
-            -
-              Label:
-                default: For PULL Source Types
-              Parameters:
-                - PriPullURL
-                - PriPullUser
-                - PriPullPass
-                - SecPullURL
-                - SecPullUser
-                - SecPullPass
-            -
-              Label:
-                default: MediaConnect Source Type
-              Parameters:
-                - PriMediaConnectArn
-                - SecMediaConnectArn
+  SendAnonymousData:
+    Description: Send anonymous data
+    Type: String
+    Default: No
+    AllowedValues:
+      - Yes
+      - No
 
-        ParameterLabels:
-          InputType:
-            default: Source Input Type
-          InputCodec:
-            default: Source Codec
-          InputRes:
-            default: Encoding Profile
-          InputCIDR:
-            default: Input CIDR Block
-          PriPullURL:
-            default: Primary Source URL
-          PriPullUser:
-            default: Primary Source Username
-          PriPullPass:
-            default: Primary Source Password
-          SecPullURL:
-            default: Secondary Source URL
-          SecPullUser:
-            default: Secondary Source Username
-          SecPullPass:
-            default: Secondary Source Password
-          Code:
-            default: Source Code
-          PriMediaConnectArn:
-            default: Primary MediaConnect Arn
-          SecMediaConnectArn:
-            default: Secondary MediaConnect Arn
-          ChannelStart:
-            default: Start MediaLive Channel
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: Deployment Options
+        Parameters:
+          - Code
+      -
+        Label:
+          default: Live Stream Source
+        Parameters:
+          - InputType
+          - InputCodec
+          - InputRes
+          - ChannelStart
+          - ChannelClass
+      -
+        Label:
+          default: For PUSH Source Types
+        Parameters:
+          - InputCIDR
+      -
+        Label:
+          default: For PULL Source Types
+        Parameters:
+          - PriPullURL
+          - PriPullUser
+          - PriPullPass
+          - SecPullURL
+          - SecPullUser
+          - SecPullPass
+      -
+        Label:
+          default: MediaConnect Source Type
+        Parameters:
+          - PriMediaConnectArn
+          - SecMediaConnectArn
+      -
+        Label:
+          default: Anonymous Data
+        Parameters:
+          - SendAnonymousData
+
+    ParameterLabels:
+      InputType:
+        default: Source Input Type
+      InputCodec:
+        default: Source Codec
+      InputRes:
+        default: Encoding Profile
+      InputCIDR:
+        default: Input CIDR Block
+      PriPullURL:
+        default: Primary Source URL
+      PriPullUser:
+        default: Primary Source Username
+      PriPullPass:
+        default: Primary Source Password
+      SecPullURL:
+        default: Secondary Source URL
+      SecPullUser:
+        default: Secondary Source Username
+      SecPullPass:
+        default: Secondary Source Password
+      Code:
+        default: Source Code
+      PriMediaConnectArn:
+        default: Primary MediaConnect Arn
+      SecMediaConnectArn:
+        default: Secondary MediaConnect Arn
+      ChannelStart:
+        default: Start MediaLive Channel
+      SendAnonymousData:
+        default: Send anonymous data
+      ChannelClass:
+        default: Channel class (single or dual)
 
 Mappings:
   SourceCode:
     General:
       S3Bucket: CODE_BUCKET
-      KeyPrefix: SOLUTION_NAME/CODE_VERSION
-
-  AnonymousData:
-    SendAnonymousData:
-      Data: Yes
+      KeyPrefix: SOLUTION_NAME/CODE_VERSION/regional-s3-assets
 
 Conditions:
-    Metrics: !Equals [ !FindInMap [AnonymousData,SendAnonymousData,Data], Yes]
-    CodeBase: !Equals [!Ref Code, Nodejs12.x]
-    Start: !Equals [ !Ref ChannelStart , Yes ]
+  Metrics: !Equals [ !Ref SendAnonymousData, Yes]
+  CodeBase: !Equals [!Ref Code, Nodejs12.x ]
+  Start: !Equals [ !Ref ChannelStart , Yes ]
 
 Resources:
 
@@ -221,7 +244,7 @@ Resources:
                   - medialive:startChannel
                   - medialive:tagResource
                 Resource:
-                    - !Join ["", ["arn:aws:medialive:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":*"]]
+                  - !Join ["", ["arn:aws:medialive:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":*"]]
               -
                 Effect: Allow
                 Action:
@@ -232,7 +255,7 @@ Resources:
                   - mediapackage:createOriginEndpoint
 
                 Resource:
-                    - !Join ["", ["arn:aws:mediapackage:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":*"]]
+                  - !Join ["", ["arn:aws:mediapackage:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":*"]]
               -
                 Effect: Allow
                 Action:
@@ -282,6 +305,12 @@ Resources:
                   - mediaconnect:ManagedRemoveOutput
                 Resource:
                   - !Join ["", ["arn:aws:mediaconnect:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":*"]]
+              -
+                Effect: Allow
+                Action:
+                  - mediapackage:DescribeChannel
+                Resource:
+                  - !Join ["", ["arn:aws:mediapackage:", Ref: "AWS::Region", ":", Ref: "AWS::AccountId", ":channels/*" ]]
 
   CustomResource:
     Type: AWS::Lambda::Function
@@ -292,7 +321,7 @@ Resources:
       Role: !GetAtt CustomResourceRole.Arn
       Code:
         S3Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
-        S3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"],  !If ["CodeBase", "custom-resource-js.zip", "custom-resource-py.zip"]]]
+        S3Key:  !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"], !If [CodeBase, "custom-resource-js.zip", "custom-resource-py.zip"]]]
       Runtime:  !If [CodeBase, nodejs12.x, python3.8]
       Timeout: 180
 
@@ -311,29 +340,29 @@ Resources:
       EndPoint: HLS
       ChannelId: !GetAtt MediaPackageChannel.ChannelId
 
-  MediaPackageDashEndpoint:
-    Type: Custom::MediaPackageDashEndpoint
-    Properties:
-      ServiceToken: !GetAtt CustomResource.Arn
-      Resource: MediaPackageEndPoint
-      EndPoint: DASH
-      ChannelId: !GetAtt MediaPackageChannel.ChannelId
-
-  MediaPackageMssEndpoint:
-    Type: Custom::MediaPackageMssEndpoint
-    Properties:
-      ServiceToken: !GetAtt CustomResource.Arn
-      Resource: MediaPackageEndPoint
-      EndPoint: MSS
-      ChannelId: !GetAtt MediaPackageChannel.ChannelId
-
-  MediaPackageCmafEndpoint:
-    Type: Custom::MediaPackageCmafEndpoint
-    Properties:
-      ServiceToken: !GetAtt CustomResource.Arn
-      Resource: MediaPackageEndPoint
-      EndPoint: CMAF
-      ChannelId: !GetAtt MediaPackageChannel.ChannelId
+#  MediaPackageDashEndpoint:
+#    Type: Custom::MediaPackageDashEndpoint
+#    Properties:
+#      ServiceToken: !GetAtt CustomResource.Arn
+#      Resource: MediaPackageEndPoint
+#      EndPoint: DASH
+#      ChannelId: !GetAtt MediaPackageChannel.ChannelId
+#
+#  MediaPackageMssEndpoint:
+#    Type: Custom::MediaPackageMssEndpoint
+#    Properties:
+#      ServiceToken: !GetAtt CustomResource.Arn
+#      Resource: MediaPackageEndPoint
+#      EndPoint: MSS
+#      ChannelId: !GetAtt MediaPackageChannel.ChannelId
+#
+#  MediaPackageCmafEndpoint:
+#    Type: Custom::MediaPackageCmafEndpoint
+#    Properties:
+#      ServiceToken: !GetAtt CustomResource.Arn
+#      Resource: MediaPackageEndPoint
+#      EndPoint: CMAF
+#      ChannelId: !GetAtt MediaPackageChannel.ChannelId
 
   MediaLiveInput:
     Type: Custom::MediaLiveInput
@@ -352,6 +381,7 @@ Resources:
       RoleArn: !GetAtt MediaLiveRole.Arn
       PriMediaConnectArn: !Ref PriMediaConnectArn
       SecMediaConnectArn: !Ref SecMediaConnectArn
+      ChannelClass: !Ref ChannelClass
 
   MediaLiveChannel:
     Type: Custom::MediaLiveChannel
@@ -364,10 +394,12 @@ Resources:
       Role: !GetAtt MediaLiveRole.Arn
       InputId: !GetAtt MediaLiveInput.Id
       Type: !Ref InputType
-      MediaPackagePriUrl: !GetAtt MediaPackageChannel.PrimaryUrl
-      MediaPackagePriUser: !GetAtt MediaPackageChannel.PrimaryUser
-      MediaPackageSecUrl: !GetAtt MediaPackageChannel.SecondaryUrl
-      MediaPackageSecUser: !GetAtt MediaPackageChannel.SecondaryUser
+#      MediaPackagePriUrl: !GetAtt MediaPackageChannel.PrimaryUrl
+#      MediaPackagePriUser: !GetAtt MediaPackageChannel.PrimaryUser
+#      MediaPackageSecUrl: !GetAtt MediaPackageChannel.SecondaryUrl
+#      MediaPackageSecUser: !GetAtt MediaPackageChannel.SecondaryUser
+      MediaPackageChannelId: !GetAtt MediaPackageChannel.ChannelId
+      ChannelClass: !Ref ChannelClass
 
   MediaLiveChannelStart:
     Condition: Start
@@ -418,26 +450,26 @@ Resources:
           Value: !GetAtt MediaPackageChannel.Arn
 
   LogsBucket:
-    DeletionPolicy: Retain 
-    Type: AWS::S3::Bucket 
-    Properties: 
-      AccessControl: LogDeliveryWrite 
-      BucketEncryption: 
-        ServerSideEncryptionConfiguration: 
-          - ServerSideEncryptionByDefault: 
-              SSEAlgorithm: AES256 
-      PublicAccessBlockConfiguration: 
-        BlockPublicAcls: true 
-        BlockPublicPolicy: true 
-        IgnorePublicAcls: true 
-        RestrictPublicBuckets: true 
-    Metadata: 
-      cfn_nag: 
-        rules_to_suppress: 
-          - id: W35 
-            reason: "Used to store access logs for other buckets" 
-          - id: W51 
-            reason: "Bucket is private and does not need a bucket policy" 
+    DeletionPolicy: Retain
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: LogDeliveryWrite
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: "Used to store access logs for other buckets"
+          - id: W51
+            reason: "Bucket is private and does not need a bucket policy"
   # Demo Assets
 
   DemoBucket:
@@ -452,7 +484,7 @@ Resources:
         rules_to_suppress:
           - id: W41
             reason: "Encryption not enabled, this bucket host a website accessed through CloudFront"
-            
+
   DemoBucketPolicy:
     Type: 'AWS::S3::BucketPolicy'
     Properties:
@@ -473,51 +505,51 @@ Resources:
         Comment: !Sub "access-identity-${DemoBucket}"
 
   DemoCloudFront:
-      Type: AWS::CloudFront::Distribution
-      Properties:
-        DistributionConfig:
-          Logging:
-            IncludeCookies: false
-            Bucket: !GetAtt LogsBucket.DomainName
-            Prefix: cloudfront-demo-logs/
-          Comment: "Website distribution for solution"
-          Origins:
-            -
-              Id: S3-solution-website
-              DomainName: !Sub "${DemoBucket}.s3.${AWS::Region}.amazonaws.com"
-              OriginPath: /console
-              S3OriginConfig:
-                  OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${DemoOriginAccessIdentity}"
-          DefaultCacheBehavior:
-            TargetOriginId: S3-solution-website
-            AllowedMethods:
-                - GET
-                - HEAD
-                - OPTIONS
-                - PUT
-                - POST
-                - PATCH
-                - DELETE
-            CachedMethods:
-                - GET
-                - HEAD
-                - OPTIONS
-            ForwardedValues:
-                QueryString: false
-            ViewerProtocolPolicy: redirect-to-https
-          IPV6Enabled: true
-          DefaultRootObject: "index.html"
-          CustomErrorResponses:
-            - ErrorCode: 404
-              ResponsePagePath: "/index.html"
-              ResponseCode: 200
-            - ErrorCode: 403
-              ResponsePagePath: "/index.html"
-              ResponseCode: 200
-          ViewerCertificate:
-              CloudFrontDefaultCertificate: true
-          Enabled: true
-          HttpVersion: 'http2'
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Logging:
+          IncludeCookies: false
+          Bucket: !GetAtt LogsBucket.DomainName
+          Prefix: cloudfront-demo-logs/
+        Comment: "Website distribution for solution"
+        Origins:
+          -
+            Id: S3-solution-website
+            DomainName: !Sub "${DemoBucket}.s3.${AWS::Region}.amazonaws.com"
+            OriginPath: /console
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${DemoOriginAccessIdentity}"
+        DefaultCacheBehavior:
+          TargetOriginId: S3-solution-website
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+            - PUT
+            - POST
+            - PATCH
+            - DELETE
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          ForwardedValues:
+            QueryString: false
+          ViewerProtocolPolicy: redirect-to-https
+        IPV6Enabled: true
+        DefaultRootObject: "index.html"
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponsePagePath: "/index.html"
+            ResponseCode: 200
+          - ErrorCode: 403
+            ResponsePagePath: "/index.html"
+            ResponseCode: 200
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+        Enabled: true
+        HttpVersion: 'http2'
 
   DemoIamPolicy:
     Type: "AWS::IAM::Policy"
@@ -556,15 +588,13 @@ Resources:
       DemoBucket: !Ref DemoBucket
       Exports:
         !Sub |
-          //Configuration file generated by cloudformation
-          'use strict'
-          const exports = {
-            mediaLiveConsole: 'https://console.aws.amazon.com/medialive/home?region=${AWS::Region}#/channels/${MediaLiveChannel.ChannelId}',
-            hls_manifest: 'https://${CloudFront.DomainName}/out/v1${MediaPackageHlsEndpoint.Manifest}',
-            dash_manifest: 'https://${CloudFront.DomainName}/out/v1${MediaPackageDashEndpoint.Manifest}',
-            mss_manifest: 'https://${CloudFront.DomainName}/out/v1${MediaPackageMssEndpoint.Manifest}',
-            cmaf_manifest: 'https://${CloudFront.DomainName}/out/v1${MediaPackageCmafEndpoint.Manifest}'
-          }
+        //Configuration file generated by cloudformation
+        'use strict'
+        const exports = {
+          streamName: '${AWS::StackName}',
+          mediaLiveConsole: 'https://console.aws.amazon.com/medialive/home?region=${AWS::Region}#/channels/${MediaLiveChannel.ChannelId}',
+          hls_manifest: 'https://${CloudFront.DomainName}/out/v1${MediaPackageHlsEndpoint.Manifest}'
+        }
 
   # Metrics
   Uuid:
@@ -606,17 +636,17 @@ Outputs:
     Description: HLS CloudFront URL
     Value: !Sub https://${CloudFront.DomainName}/out/v1${MediaPackageHlsEndpoint.Manifest}
 
-  CloudFrontDashEnpoint:
-    Description: DASH CloudFront URL
-    Value: !Sub https://${CloudFront.DomainName}/out/v1${MediaPackageDashEndpoint.Manifest}
-
-  CloudFrontMssEnpoint:
-    Description: MSS CloudFront URL
-    Value: !Sub https://${CloudFront.DomainName}/out/v1${MediaPackageMssEndpoint.Manifest}
-
-  CloudFrontCmafEnpoint:
-      Description: CMAF CloudFront URL
-      Value: !Sub https://${CloudFront.DomainName}/out/v1${MediaPackageCmafEndpoint.Manifest}
+#  CloudFrontDashEnpoint:
+#    Description: DASH CloudFront URL
+#    Value: !Sub https://${CloudFront.DomainName}/out/v1${MediaPackageDashEndpoint.Manifest}
+#
+#  CloudFrontMssEnpoint:
+#    Description: MSS CloudFront URL
+#    Value: !Sub https://${CloudFront.DomainName}/out/v1${MediaPackageMssEndpoint.Manifest}
+#
+#  CloudFrontCmafEnpoint:
+#    Description: CMAF CloudFront URL
+#    Value: !Sub https://${CloudFront.DomainName}/out/v1${MediaPackageCmafEndpoint.Manifest}
 
   DemoConsole:
     Description: Demo Player URL

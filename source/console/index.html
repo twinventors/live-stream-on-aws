@@ -14,10 +14,11 @@
 </head>
 
 <body>
+	<!-- Exports -->
+	<script src="./assets/js/exports.js"></script>
 	<!-- Navbar -->
 	<nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
-		<img class="header-logo mx-2" src="./assets/img/smile.png" alt="logo">
-		<a class="navbar-brand" href="./index.html">Live Streaming on AWS</a>
+		<a class="navbar-brand" href="./index.html" id="stream-name"></a>
 	</nav>
 
 	<!-- Content -->
@@ -25,7 +26,7 @@
 
 		<section class="text-center pb-4">
 			<p class="lead">
-				This demo provides links and a preview player for the HLS, DASH, Microsoft Smooth and CMAF
+				This demo provides links and a preview player for the HLS.
 				CloudFront endpoints created by the Live Stream on AWS solution.
 			</p>
 		</section>
@@ -36,7 +37,6 @@
 				class="video-js"
 				height="480"
 				controls
-				poster="./assets/img/aws-logo.png"
 				crossorigin="anonymous"
 				autoplay preload="auto"
 				data-setup='{"fluid": true}'>
@@ -55,9 +55,9 @@
 					<tr>
 						<td>HLS </td>
 						<td class="d-none d-sm-block"  style="font-size: 0.9rem;" id="hls"></td>
-						<td><button class="btn btn-success btn-sm" onclick="loadHls(hls_url)">Preview</button></td>
+<!--						<td><button class="btn btn-success btn-sm" onclick="loadHls(hls_url)" disabled>Preview</button></td>-->
 					</tr>
-					<tr>
+<!--					<tr>
 						<td>DASH</td>
 						<td class="d-none d-sm-block" style="font-size: 0.9rem;" id="dash"></td>
 						<td><button class="btn btn-success btn-sm" onclick="loadDash(dash_url)">Preview</button></td>
@@ -71,7 +71,7 @@
 						<td>CMAF </td>
 						<td class="d-none d-sm-block"  style="font-size: 0.9rem;" id="cmaf"></td>
 						<td><button class="btn btn-success btn-sm" onclick="loadCmaf(cmaf_url)">Preview</button></td>
-					</tr>
+					</tr>-->
 				</tbody>
 			</table>
 		</section>
@@ -123,7 +123,6 @@
 	<script src="./assets/js/lib/videojs-dash.js"></script>
 	<script src="./assets/js/lib/hasplayer.min.js"></script>
 	<!-- App -->
-	<script src="./assets/js/exports.js"></script>
 	<script src="./assets/js/app.js"></script>
 
 </body>

@@ -46,7 +46,8 @@ let channel_config = {
   MediaPackagePriUser:'user1',
   MediaPackageSecUrl:'http://def/456',
   MediaPackageSecUser:'user2',
-  ChannelId:'2468'
+  ChannelId:'2468',
+  MediaPackageChannelId: 'test-livestream'
 }
 let input_data = {
   SecurityGroup: {
@@ -69,7 +70,7 @@ let channel_data = {
   State:'IDLE',
   ChannelId: '12345',
   Channel: {
-    Id:'2468'
+    Id:'test-livestream'
   }
 }
 let ChannelId = '2468'
@@ -119,7 +120,7 @@ describe('#MEDIALIVE::', () => {
     AWS.mock('MediaLive', 'describeChannel', Promise.resolve(channel_data));
 
     let response = await lambda.createChannel(channel_config)
-    expect(response.ChannelId).to.equal('2468');
+    expect(response.ChannelId).to.equal('test-livestream');
 	});
 
   it('should return "ERROR" on MediaLive create Channel', async () => {

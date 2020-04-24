@@ -16,9 +16,9 @@
 #  - trademarked-solution-name: name of the solution for consistency
 #
 # Check to see if input has been provided:
-if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
-    echo "Please provide the base source bucket name, trademark approved solution name and version where the lambda code will eventually reside."
-    echo "For example: ./build-s3-dist.sh solutions trademarked-solution-name v1.0.0"
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+    echo "Please provide the base source bucket name, region, trademark approved solution name and version where the lambda code will eventually reside."
+    echo "For example: ./build-s3-dist.sh us-east-1 solutions trademarked-solution-name v1.0.0"
     exit 1
 fi
 
@@ -50,22 +50,22 @@ cp $template_dir/live-streaming-on-aws.yaml $template_dist_dir/live-streaming-on
 replace="s/CODE_BUCKET/$1/g"
 echo "sed -i -e $replace"
 sed -i -e $replace $template_dist_dir/live-streaming-on-aws.template
-replace="s/SOLUTION_NAME/$2/g"
+replace="s/SOLUTION_NAME/$3/g"
 echo "sed -i -e $replace"
 sed -i -e $replace $template_dist_dir/live-streaming-on-aws.template
-replace="s/CODE_VERSION/$3/g"
+replace="s/CODE_VERSION/$4/g"
 echo "sed -i -e $replace"
 sed -i -e $replace $template_dist_dir/live-streaming-on-aws.template
 # remove tmp file for MACs
-[ -e $template_dist_dir/live-streaming-on-aws.template-e ] && rm -r $template_dist_dir/live-streaming-on-aws.template-e
+# [ -e $template_dist_dir/live-streaming-on-aws.template-e ] && rm -r $template_dist_dir/live-streaming-on-aws.template-e
 
 echo "------------------------------------------------------------------------------"
-echo "Buildinbg console"
+echo "Building console"
 echo "------------------------------------------------------------------------------"
 cd $source_dir/console
 echo "NPM INSTALL::"
 npm install 
-mkdir ./assets/js/lib
+mkdir -p ./assets/js/lib
 ## Bootstrap
 cp ./node_modules/bootstrap/dist/js/bootstrap.min.js ./assets/js/lib/bootstrap.min.js
 cp ./node_modules/bootstrap/dist/css/bootstrap.min.css ./assets/css/bootstrap.min.css
@@ -97,14 +97,17 @@ npm install --production
 rm package-lock.json
 zip -q -r9 $build_dist_dir/custom-resource-js.zip *
 
-cd $source_dir
-echo "------------------------------------------------------------------------------"
-echo "Creating PYTHON custom-resource deployment package"
-echo "------------------------------------------------------------------------------"
-cd $source_dir/custom-resource-py/
-pip3 install -r ./requirements.txt -t .
-zip -q -r9 $build_dist_dir/custom-resource-py.zip *
+#cd $source_dir
+#echo "------------------------------------------------------------------------------"
+#echo "Creating PYTHON custom-resource deployment package"
+#echo "------------------------------------------------------------------------------"
+#cd $source_dir/custom-resource-py/
+#pip3 install -r ./requirements.txt -t .
+#zip -q -r9 $build_dist_dir/custom-resource-py.zip *
 
 echo "------------------------------------------------------------------------------"
-echo "Build S3 Packaging Complete"
+echo "Uploading to s3"
 echo "------------------------------------------------------------------------------"
+
+cd $template_dir
+aws s3 sync . s3://$1-$2/$3/$4
