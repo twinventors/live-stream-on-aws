@@ -35,10 +35,31 @@ Parameters:
     Type: String
     Default: 540 static
     AllowedValues:
-#      - 1080
-#      - 720
-#      - 540
+      - 1080
+      - 720
+      - 540
       - 540 static
+
+  UseMediaPackageProtocol:
+    Description: Specify whether or not to hit MediaPackage via 'mediapackage://<>/<>'
+    Type: String
+    Default: False
+    AllowedValues:
+      - True
+      - False
+
+#  HlsSegmentLength:
+#    Description: Length of MPEG-2 Transport Stream segments to create (in seconds).
+#    Type: Number
+#    Default: 1
+#    MinValue: 1
+#
+#  HlsNumSegments:
+#    Description:
+#    Type: Number
+#    Default: 3
+#    MinValue: 3
+#    MaxValue: 10
 
   InputCIDR:
     Description: Specify the CIDR Block for the MediaLive SecurityGroup
@@ -128,6 +149,7 @@ Metadata:
           - InputRes
           - ChannelStart
           - ChannelClass
+          - UseMediaPackageProtocol
       -
         Label:
           default: For PUSH Source Types
@@ -162,6 +184,8 @@ Metadata:
         default: Source Codec
       InputRes:
         default: Encoding Profile
+      UseMediaPackageProtocol:
+        default: Media Package Protocol
       InputCIDR:
         default: Input CIDR Block
       PriPullURL:
