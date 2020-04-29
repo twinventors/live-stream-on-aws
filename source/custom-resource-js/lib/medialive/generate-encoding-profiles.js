@@ -13,6 +13,49 @@
  *  limitations under the License.
  ********************************************************************************/
 
+const generateProfile = (VideoBitrate,
+                         AudioBitrate,
+                         Width,
+                         Height,
+                         AudioProfileIndex,
+                         Index,
+                         GopSize = 20,
+                         GopNumBFrames = 2,
+                         FrameNumerator = GopSize * 1000,
+                         FrameDenominator = 1001,
+) => ({
+  VideoBitrate,
+  AudioBitrate,
+  Width,
+  Height,
+  AudioProfileIndex,
+  Index,
+  GopSize,
+  GopNumBFrames,
+  FrameNumerator,
+  FrameDenominator,
+});
+
+const _540Profile = [
+  generateProfile(200000, 64000, 416, 234, 1, undefined, 20, 0, 15000),
+  generateProfile(400000, 64000, 480, 272, 2, undefined, 20, 2, 15000),
+  generateProfile(800000, 64000, 640, 360, 3, undefined, 20, 2),
+  generateProfile(1200000, 96000,768, 432, 1),
+  generateProfile(2200000, 96000,960, 540, 2),
+];
+
+const _720Profile = [
+  ..._540Profile,
+  generateProfile(3300000, 96000, 1280, 720, 3, 1),
+  generateProfile(5000000, 128000, 1280, 720, 1, 2),
+  generateProfile(6500000, 128000, 1280, 720, 2, 3),
+];
+
+const _1080Profile = [
+  ..._720Profile,
+  generateProfile(8000000, 128000, 1920, 1080, 3, undefined, 60, 1, 30000),
+];
+
 const AvailConfiguration = {
   "AvailSettings": {
     "Scte35SpliceInsert": {
@@ -22,7 +65,7 @@ const AvailConfiguration = {
   }
 };
 
-generateAudioDescription = (Profile = generateProfile()) => ({
+const generateAudioDescription = (Profile = generateProfile()) => ({
   "AudioSelectorName": "default",
   "AudioTypeControl": "FOLLOW_INPUT",
   "CodecSettings": {
@@ -36,112 +79,97 @@ generateAudioDescription = (Profile = generateProfile()) => ({
   "Name": ["audio", Profile.AudioProfileIndex, "aac" + Profile.AudioBitrate.toString().substring(0, Profile.AudioBitrate.toString().length - 3)].join("_")
 });
 
-generateOutput = (Profile = generateProfile()) => ({
+const HlsOutputSettings = (Profile = generateProfile()) => ({
+  "HlsOutputSettings": {
+    "HlsSettings": {
+      "StandardHlsSettings": {
+        "AudioRenditionSets": "PROGRAM_AUDIO",
+        "M3u8Settings": {
+          "AudioFramesPerPes": 4,
+          "AudioPids": "492-498",
+          "EcmPid": "8182",
+          "PcrControl": "PCR_EVERY_PES_PACKET",
+          "PmtPid": "480",
+          "ProgramNum": 1,
+          "Scte35Behavior": "PASSTHROUGH",
+          "Scte35Pid": "500",
+          "TimedMetadataPid": "502",
+          "TimedMetadataBehavior": "NO_PASSTHROUGH",
+          "VideoPid": "481"
+        }
+      }
+    },
+    "NameModifier": ["", Profile.Width + "x" + Profile.Height, (Profile.VideoBitrate / 1000).toString() + "k"].join("_")
+  }
+});
+
+const MediaPackageOutputSettings = {
+  "MediaPackageOutputSettings": {}
+};
+
+const generateOutput = (Profile = generateProfile(), useMediaPackage = false) => ({
   "AudioDescriptionNames": [
     ["audio", Profile.AudioProfileIndex, "aac" + Profile.AudioBitrate.toString().substring(0, Profile.AudioBitrate.toString().length - 3)].join("_")
   ],
   "CaptionDescriptionNames": [],
-  "OutputSettings": {
-    "HlsOutputSettings": {
-      "HlsSettings": {
-        "StandardHlsSettings": {
-          "AudioRenditionSets": "PROGRAM_AUDIO",
-          "M3u8Settings": {
-            "AudioFramesPerPes": 4,
-            "AudioPids": "492-498",
-            "EcmPid": "8182",
-            "PcrControl": "PCR_EVERY_PES_PACKET",
-            "PmtPid": "480",
-            "ProgramNum": 1,
-            "Scte35Behavior": "PASSTHROUGH",
-            "Scte35Pid": "500",
-            "TimedMetadataPid": "502",
-            "TimedMetadataBehavior": "NO_PASSTHROUGH",
-            "VideoPid": "481"
-          }
-        }
-      },
-      "NameModifier": ["", Profile.Width + "x" + Profile.Height, (Profile.VideoBitrate / 1000).toString() + "k"].join("_")
-    }
-  },
+  "OutputSettings": useMediaPackage ? MediaPackageOutputSettings : HlsOutputSettings(Profile),
   "VideoDescriptionName": ["video", Profile.Width, Profile.Height + (Profile.Index ? "_" + Profile.Index : "")].join("_")
 });
 
-const groupSettingsDestination = {
-  "Destination": {
-    "DestinationRefId": "destination1"
+const Destination = {
+  "DestinationRefId": "destination1"
+};
+
+const MediaPackageGroupSettings = {
+  "MediaPackageGroupSettings": {
+    Destination,
   }
 };
 
-const mediaPackageOutputSettings = {
-  "MediaPackageOutputSettings": {}
-};
-
-const hlsOutputSettings = {
-  "HlsSettings": {
-    "StandardHlsSettings": {
-      "AudioRenditionSets": "PROGRAM_AUDIO",
-      "M3u8Settings": {
-        "AudioFramesPerPes": 4,
-        "AudioPids": "492-498",
-        "EcmPid": "8182",
-        "PcrControl": "PCR_EVERY_PES_PACKET",
-        "PmtPid": "480",
-        "ProgramNum": 1,
-        "Scte35Behavior": "PASSTHROUGH",
-        "Scte35Pid": "500",
-        "TimedMetadataPid": "502",
-        "TimedMetadataBehavior": "NO_PASSTHROUGH",
-        "VideoPid": "481"
+const HlsGroupSettings = {
+  "HlsGroupSettings": {
+    "AdMarkers": [
+      "ELEMENTAL_SCTE35"
+    ],
+    "CaptionLanguageMappings": [],
+    "CaptionLanguageSetting": "OMIT",
+    "ClientCache": "ENABLED",
+    "CodecSpecification": "RFC_4281",
+    Destination,
+    "DirectoryStructure": "SINGLE_DIRECTORY",
+    "HlsCdnSettings": {
+      "HlsBasicPutSettings": {
+        "ConnectionRetryInterval": 30,
+        "FilecacheDuration": 300,
+        "NumRetries": 5,
+        "RestartDelay": 5
       }
-    }
+    },
+    "IndexNSegments": 10,
+    "InputLossAction": "EMIT_OUTPUT",
+    "IvInManifest": "INCLUDE",
+    "IvSource": "FOLLOWS_SEGMENT_NUMBER",
+    "KeepSegments": 21,
+    "ManifestCompression": "NONE",
+    "ManifestDurationFormat": "FLOATING_POINT",
+    "Mode": "LIVE",
+    "OutputSelection": "MANIFESTS_AND_SEGMENTS",
+    "ProgramDateTime": "INCLUDE",
+    "ProgramDateTimePeriod": 600,
+    "SegmentLength": 1,
+    "SegmentationMode": "USE_SEGMENT_DURATION",
+    "SegmentsPerSubdirectory": 10000,
+    "StreamInfResolution": "INCLUDE",
+    "TimedMetadataId3Frame": "PRIV",
+    "TimedMetadataId3Period": 10,
+    "TsFileMode": "SEGMENTED_FILES"
   }
 };
 
 const generateOutputGroup = (Profiles = _540Profile, useMediaPackage = false, outputGroupName = "TN2224") => ([{
   "Name": outputGroupName,
-  "OutputGroupSettings": {
-    "HlsGroupSettings": {
-      "AdMarkers": [
-        "ELEMENTAL_SCTE35"
-      ],
-      "CaptionLanguageMappings": [],
-      "CaptionLanguageSetting": "OMIT",
-      "ClientCache": "ENABLED",
-      "CodecSpecification": "RFC_4281",
-      "Destination": {
-        "DestinationRefId": "destination1"
-      },
-      "DirectoryStructure": "SINGLE_DIRECTORY",
-      "HlsCdnSettings": {
-        "HlsBasicPutSettings": {
-          "ConnectionRetryInterval": 30,
-          "FilecacheDuration": 300,
-          "NumRetries": 5,
-          "RestartDelay": 5
-        }
-      },
-      "IndexNSegments": 10,
-      "InputLossAction": "EMIT_OUTPUT",
-      "IvInManifest": "INCLUDE",
-      "IvSource": "FOLLOWS_SEGMENT_NUMBER",
-      "KeepSegments": 21,
-      "ManifestCompression": "NONE",
-      "ManifestDurationFormat": "FLOATING_POINT",
-      "Mode": "LIVE",
-      "OutputSelection": "MANIFESTS_AND_SEGMENTS",
-      "ProgramDateTime": "INCLUDE",
-      "ProgramDateTimePeriod": 600,
-      "SegmentLength": 1,
-      "SegmentationMode": "USE_SEGMENT_DURATION",
-      "SegmentsPerSubdirectory": 10000,
-      "StreamInfResolution": "INCLUDE",
-      "TimedMetadataId3Frame": "PRIV",
-      "TimedMetadataId3Period": 10,
-      "TsFileMode": "SEGMENTED_FILES"
-    }
-  },
-  "Outputs": Profiles.map(generateOutput)
+  "OutputGroupSettings": useMediaPackage ? MediaPackageGroupSettings : HlsGroupSettings,
+  "Outputs": Profiles.map((profile) => generateOutput(profile, useMediaPackage)),
 }]);
 
 const TimecodeConfig = {
@@ -194,49 +222,6 @@ const generateProfileManifest = (Profiles = _540Profile, useMediaPackage = false
   "VideoDescriptions": Profiles.map(generateVideoDescription)
 });
 
-const generateProfile = (VideoBitrate,
-                   AudioBitrate,
-                   Width,
-                   Height,
-                   AudioProfileIndex,
-                   Index,
-                   GopSize = 20,
-                   GopNumBFrames = 2,
-                   FrameNumerator = GopSize * 1000,
-                   FrameDenominator = 1001,
-                   ) => ({
-  VideoBitrate,
-  AudioBitrate,
-  Width,
-  Height,
-  AudioProfileIndex,
-  Index,
-  GopSize,
-  GopNumBFrames,
-  FrameNumerator,
-  FrameDenominator,
-});
-
-const _540Profile = [
-  generateProfile(200000, 64000, 416, 234, 1, undefined, 20, 0, 15000),
-  generateProfile(400000, 64000, 480, 272, 2, undefined, 20, 2, 15000),
-  generateProfile(800000, 64000, 640, 360, 3, undefined, 20, 2),
-  generateProfile(1200000, 96000,768, 432, 1),
-  generateProfile(2200000, 96000,960, 540, 2),
-];
-
-const _720Profile = [
-  ..._540Profile,
-  generateProfile(3300000, 96000, 1280, 720, 3, 1),
-  generateProfile(5000000, 128000, 1280, 720, 1, 2),
-  generateProfile(6500000, 128000, 1280, 720, 2, 3),
-];
-
-const _1080Profile = [
-  ..._720Profile,
-  generateProfile(8000000, 128000, 1920, 1080, 3, undefined, 60, 1, 30000),
-];
-
 module.exports = {
-  gen: () => generateProfileManifest(_540Profile)
+  generateProfile: () => generateProfileManifest()
 };
